@@ -1,0 +1,274 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      force_heavy:
+        description: Run the macOS and Windows build jobs regardless of changed paths
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  classify:
+    name: Classify changes
+    runs-on: ubuntu-latest
+    outputs:
+      run_heavy: ${{ steps.classify.outputs.run_heavy }}
+      reason: ${{ steps.classify.outputs.reason }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+
+      - name: Classify changed paths
+        id: classify
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+          BASE_REF: ${{ github.base_ref }}
+          FORCE_HEAVY: ${{ inputs.force_heavy }}
+        run: |
+          set -euo pipefail
+
+          run_heavy=true
+          reason=conservative-fallback
+
+          if [[ "$EVENT_NAME" == workflow_dispatch ]]; then
+            if [[ "$FORCE_HEAVY" == true ]]; then
+              reason=manual-force
+            else
+              run_heavy=false
+              reason=manual-skip
+            fi
+          else
+            base_sha=
+            if [[ "$EVENT_NAME" == pull_request ]]; then
+              if ! git show-ref --verify --quiet "refs/remotes/origin/$BASE_REF"; then
+                git fetch --no-tags origin "$BASE_REF:refs/remotes/origin/$BASE_REF"
+              fi
+              base_sha="$(git merge-base "origin/$BASE_REF" HEAD)"
+              reason=pull-request-diff
+            elif [[ "$EVENT_NAME" == push ]] \
+              && [[ -n "$BEFORE_SHA" ]] \
+              && [[ ! "$BEFORE_SHA" =~ ^0+$ ]] \
+              && git cat-file -e "$BEFORE_SHA^{commit}" 2>/dev/null \
+              && git merge-base --is-ancestor "$BEFORE_SHA" "$AFTER_SHA"; then
+              base_sha="$BEFORE_SHA"
+              reason=push-diff
+            else
+              reason=initial-or-force-push
+            fi
+
+            if [[ -n "$base_sha" ]]; then
+              run_heavy=false
+              while IFS= read -r -d '' changed_path; do
+                case "$changed_path" in
+                  README.md|DESIGN.md|LICENSE|docs/*|.github/ISSUE_TEMPLATE/*)
+                    ;;
+                  *)
+                    run_heavy=true
+                    reason=build-impacting-change
+                    break
+                    ;;
+                esac
+              done < <(git diff --name-only -z "$base_sha" "$AFTER_SHA")
+
+              if [[ "$run_heavy" == false ]]; then
+                reason=docs-only
+              fi
+            fi
+          fi
+
+          {
+            printf 'run_heavy=%s\n' "$run_heavy"
+            printf 'reason=%s\n' "$reason"
+          } >> "$GITHUB_OUTPUT"
+          printf 'run_heavy=%s (%s)\n' "$run_heavy" "$reason"
+
+  macos-arm64:
+    name: macOS arm64
+    needs: classify
+    if: needs.classify.outputs.run_heavy == 'true'
+    runs-on: macos-26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Configure Debug tests
+        run: cmake --preset engine-debug
+
+      - name: Build Debug tests
+        run: cmake --build --preset engine-debug --parallel
+
+      - name: Run Debug tests
+        run: ctest --preset engine-debug --output-on-failure
+
+      - name: Configure Release bundles
+        run: cmake --preset plugin-release
+
+      - name: Build Release bundles
+        run: cmake --build --preset plugin-release --parallel
+
+      - name: Run Release tests
+        run: ctest --preset plugin-release --output-on-failure
+
+      - name: Verify macOS bundles
+        run: |
+          test -d build/plugin-release/blackthrum_standalone_plugin.app
+          test -d build/plugin-release/VST3/Release/blackthrum_vst3_plugin.vst3
+          test -d build/plugin-release/blackthrum_au_plugin.component
+          codesign --verify --deep --strict build/plugin-release/blackthrum_standalone_plugin.app
+          codesign --verify --deep --strict build/plugin-release/VST3/Release/blackthrum_vst3_plugin.vst3
+          codesign --verify --deep --strict build/plugin-release/blackthrum_au_plugin.component
+
+      - name: Package macOS bundles
+        run: |
+          set -euo pipefail
+          rm -rf dist
+          mkdir -p dist/BlackThrum-macos-arm64
+          ditto build/plugin-release/blackthrum_standalone_plugin.app dist/BlackThrum-macos-arm64/blackthrum_standalone_plugin.app
+          ditto build/plugin-release/VST3/Release/blackthrum_vst3_plugin.vst3 dist/BlackThrum-macos-arm64/blackthrum_vst3_plugin.vst3
+          ditto build/plugin-release/blackthrum_au_plugin.component dist/BlackThrum-macos-arm64/blackthrum_au_plugin.component
+          ditto -c -k --sequesterRsrc --keepParent dist/BlackThrum-macos-arm64 dist/BlackThrum-latest-macos-arm64.zip
+          (
+            cd dist
+            shasum -a 256 BlackThrum-latest-macos-arm64.zip \
+              | awk '{ print tolower($1) "  " $2 }' > SHA256SUMS.txt
+          )
+
+      - name: Upload macOS latest ZIP
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: BlackThrum-latest-macos-arm64
+          path: |
+            dist/BlackThrum-latest-macos-arm64.zip
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
+
+  windows-x64:
+    name: Windows x64
+    needs: classify
+    if: needs.classify.outputs.run_heavy == 'true'
+    runs-on: windows-2025-vs2026
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Configure Debug tests
+        shell: pwsh
+        run: >
+          cmake -S . -B build/windows-debug
+          -G "Visual Studio 18 2026" -A x64
+          -DBLACKTHRUM_BUILD_PLUGIN=OFF
+          -DBLACKTHRUM_BUILD_TESTS=ON
+
+      - name: Build Debug tests
+        shell: pwsh
+        run: cmake --build build/windows-debug --config Debug --parallel --target blackthrum_engine_tests
+
+      - name: Run Debug tests
+        shell: pwsh
+        run: ctest --test-dir build/windows-debug -C Debug --output-on-failure
+
+      - name: Configure Release bundles
+        shell: pwsh
+        run: >
+          cmake -S . -B build/windows-release
+          -G "Visual Studio 18 2026" -A x64
+          -DBLACKTHRUM_BUILD_PLUGIN=ON
+          -DBLACKTHRUM_BUILD_TESTS=ON
+
+      - name: Build Release bundles
+        shell: pwsh
+        run: >
+          cmake --build build/windows-release --config Release --parallel
+          --target blackthrum_release_bundles
+          blackthrum_engine_tests
+          blackthrum_plugin_bridge_tests
+
+      - name: Run Release tests
+        shell: pwsh
+        run: ctest --test-dir build/windows-release -C Release --output-on-failure
+
+      - name: Package Windows bundles
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Remove-Item -Recurse -Force dist -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path dist/BlackThrum-windows-x64 | Out-Null
+          $standaloneCandidates = @(Get-ChildItem build/windows-release -Recurse -File -Filter blackthrum_standalone_plugin.exe)
+          $vst3Candidates = @(Get-ChildItem build/windows-release -Recurse -Directory -Filter blackthrum_vst3_plugin.vst3)
+          if ($standaloneCandidates.Count -ne 1) {
+            throw "Expected exactly one BlackThrum standalone executable, found $($standaloneCandidates.Count): $($standaloneCandidates.FullName -join ', ')"
+          }
+          if ($vst3Candidates.Count -ne 1) {
+            throw "Expected exactly one BlackThrum VST3 bundle, found $($vst3Candidates.Count): $($vst3Candidates.FullName -join ', ')"
+          }
+          $standalone = $standaloneCandidates[0]
+          $vst3 = $vst3Candidates[0]
+          Copy-Item $standalone.FullName dist/BlackThrum-windows-x64/
+          Copy-Item $vst3.FullName dist/BlackThrum-windows-x64/ -Recurse
+          Compress-Archive -Path dist/BlackThrum-windows-x64 -DestinationPath dist/BlackThrum-latest-windows-x64.zip -Force
+          $hash = (Get-FileHash dist/BlackThrum-latest-windows-x64.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          $manifest = Join-Path (Resolve-Path dist) "SHA256SUMS.txt"
+          [IO.File]::WriteAllText(
+            $manifest,
+            "$hash  BlackThrum-latest-windows-x64.zip`n",
+            [Text.UTF8Encoding]::new($false))
+
+      - name: Upload Windows latest ZIP
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: BlackThrum-latest-windows-x64
+          path: |
+            dist/BlackThrum-latest-windows-x64.zip
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
+
+  summary:
+    name: CI Summary
+    if: always()
+    needs:
+      - classify
+      - macos-arm64
+      - windows-x64
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify required CI result
+        env:
+          CLASSIFY_RESULT: ${{ needs.classify.result }}
+          RUN_HEAVY: ${{ needs.classify.outputs.run_heavy }}
+          CLASSIFY_REASON: ${{ needs.classify.outputs.reason }}
+          MACOS_RESULT: ${{ needs.macos-arm64.result }}
+          WINDOWS_RESULT: ${{ needs.windows-x64.result }}
+        run: |
+          set -euo pipefail
+          printf 'classifier=%s run_heavy=%s reason=%s macos=%s windows=%s\n' \
+            "$CLASSIFY_RESULT" "$RUN_HEAVY" "$CLASSIFY_REASON" "$MACOS_RESULT" "$WINDOWS_RESULT"
+
+          [[ "$CLASSIFY_RESULT" == success ]]
+          if [[ "$RUN_HEAVY" == true ]]; then
+            [[ "$MACOS_RESULT" == success ]]
+            [[ "$WINDOWS_RESULT" == success ]]
+          else
+            [[ "$RUN_HEAVY" == false ]]
+            [[ "$MACOS_RESULT" == skipped ]]
+            [[ "$WINDOWS_RESULT" == skipped ]]
+          fi

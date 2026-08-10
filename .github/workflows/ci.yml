@@ -105,12 +105,26 @@ jobs:
     needs: classify
     if: needs.classify.outputs.run_heavy == 'true'
     runs-on: macos-26
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      SCCACHE_IGNORE_SERVER_IO_ERROR: "1"
+      SCCACHE_BASEDIRS: ${{ github.workspace }}
     steps:
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
+      - name: Set up compiler cache
+        uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
+        with:
+          version: "v0.16.0"
+
       - name: Configure Debug tests
-        run: cmake --preset engine-debug
+        run: >
+          cmake --preset engine-debug
+          -DCMAKE_C_COMPILER_LAUNCHER=sccache
+          -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
+          -DCMAKE_OBJC_COMPILER_LAUNCHER=sccache
+          -DCMAKE_OBJCXX_COMPILER_LAUNCHER=sccache
 
       - name: Build Debug tests
         run: cmake --build --preset engine-debug --parallel
@@ -119,7 +133,12 @@ jobs:
         run: ctest --preset engine-debug --output-on-failure
 
       - name: Configure Release bundles
-        run: cmake --preset plugin-release
+        run: >
+          cmake --preset plugin-release
+          -DCMAKE_C_COMPILER_LAUNCHER=sccache
+          -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
+          -DCMAKE_OBJC_COMPILER_LAUNCHER=sccache
+          -DCMAKE_OBJCXX_COMPILER_LAUNCHER=sccache
 
       - name: Build Release bundles
         run: cmake --build --preset plugin-release --parallel
@@ -166,17 +185,34 @@ jobs:
     needs: classify
     if: needs.classify.outputs.run_heavy == 'true'
     runs-on: windows-2025-vs2026
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      SCCACHE_IGNORE_SERVER_IO_ERROR: "1"
+      SCCACHE_BASEDIRS: ${{ github.workspace }}
     steps:
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1
+        with:
+          arch: x64
+
+      - name: Set up compiler cache
+        uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
+        with:
+          version: "v0.16.0"
 
       - name: Configure Debug tests
         shell: pwsh
         run: >
           cmake -S . -B build/windows-debug
-          -G "Visual Studio 18 2026" -A x64
+          -G "Ninja Multi-Config"
           -DBLACKTHRUM_BUILD_PLUGIN=OFF
           -DBLACKTHRUM_BUILD_TESTS=ON
+          -DCMAKE_C_COMPILER_LAUNCHER=sccache
+          -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
+          -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
 
       - name: Build Debug tests
         shell: pwsh
@@ -190,9 +226,12 @@ jobs:
         shell: pwsh
         run: >
           cmake -S . -B build/windows-release
-          -G "Visual Studio 18 2026" -A x64
+          -G "Ninja Multi-Config"
           -DBLACKTHRUM_BUILD_PLUGIN=ON
           -DBLACKTHRUM_BUILD_TESTS=ON
+          -DCMAKE_C_COMPILER_LAUNCHER=sccache
+          -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
+          -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
 
       - name: Build Release bundles
         shell: pwsh

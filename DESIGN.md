@@ -6,7 +6,7 @@ BlackThrum is a focused three-carrier thrum/drone instrument. MIDI notes retrigg
 
 - Plugin formats: Standalone and VST3 on macOS and Windows; AUv2 additionally on macOS.
 - Synth behavior: accepts MIDI, produces stereo audio, one active voice.
-- Stable identity: `audio.2bit.blackthrum`, `audio.2bit.BlackThrum`, AU subtype `BlTh`.
+- Stable identity: `jp.ehl.blackthrum`, `jp.ehl.blackthrum`, AU subtype `BlTh`.
 - Host parameters: `Pitch offset`, `Thrum`, `Drift`, `Formant`, `Width`, `Grind`, `Output`.
 - Runtime-only UI state: `Trigger`.
 - State format: parameter ID/value pairs with a `BLT1` magic header and version `1`.
@@ -33,7 +33,7 @@ The current editor is a YUP parameter grid with direct host-bound controls plus 
 
 ## OMX Design Checklist
 
-- [x] Product identity is unique: app ID `audio.2bit.blackthrum`, plugin ID `audio.2bit.BlackThrum`, AU subtype `BlTh`.
+- [x] Product identity is unique: app ID `jp.ehl.blackthrum`, plugin ID `jp.ehl.blackthrum`, AU subtype `BlTh`.
 - [x] Version is `0.1.0`.
 - [x] State magic/version is product-specific: `BLT1` / `1`.
 - [x] Host parameter list is stable and excludes runtime `Trigger`.

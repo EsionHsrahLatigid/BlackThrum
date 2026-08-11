@@ -4,8 +4,8 @@ BlackThrum is a YUP-based audio plugin and standalone synth that renders a note-
 
 ## Identity
 
-- App ID: `audio.2bit.blackthrum`
-- Plugin ID: `audio.2bit.BlackThrum`
+- App ID: `jp.ehl.blackthrum`
+- Plugin ID: `jp.ehl.blackthrum`
 - AU subtype: `BlTh`
 - Vendor: `2bit`
 - Type: stereo-output synth accepting MIDI input

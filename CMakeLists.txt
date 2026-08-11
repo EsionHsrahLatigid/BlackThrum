@@ -77,12 +77,12 @@ if(BLACKTHRUM_BUILD_PLUGIN)
         TARGET_NAME blackthrum
         TARGET_VERSION ${PROJECT_VERSION}
         TARGET_IDE_GROUP "BlackThrum"
-        TARGET_APP_ID "audio.2bit.blackthrum"
-        TARGET_APP_NAMESPACE "audio.2bit"
+        TARGET_APP_ID "jp.ehl.blackthrum"
+        TARGET_APP_NAMESPACE "jp.ehl"
         TARGET_CXX_STANDARD 20
-        PLUGIN_ID "audio.2bit.BlackThrum"
+        PLUGIN_ID "jp.ehl.blackthrum"
         PLUGIN_NAME "BlackThrum"
-        PLUGIN_VENDOR "2bit"
+        PLUGIN_VENDOR "ehl_"
         PLUGIN_EMAIL ""
         PLUGIN_VERSION "${PROJECT_VERSION}"
         PLUGIN_DESCRIPTION "Three-carrier detuned thrum drone instrument"
@@ -93,7 +93,7 @@ if(BLACKTHRUM_BUILD_PLUGIN)
         PLUGIN_CREATE_VST3 ON
         PLUGIN_CREATE_AU ${BLACKTHRUM_CREATE_AU}
         PLUGIN_AU_SUBTYPE "BlTh"
-        PLUGIN_AU_MANUFACTURER "2Bit"
+        PLUGIN_AU_MANUFACTURER "EHL1"
         PLUGIN_AU_SANDBOX_SAFE ON
         PLUGIN_CREATE_AUv3 OFF
         PLUGIN_CREATE_LV2 OFF
@@ -146,9 +146,9 @@ if(BLACKTHRUM_BUILD_PLUGIN)
 
     if(APPLE)
         set_target_properties(blackthrum_standalone_plugin PROPERTIES
-            MACOSX_BUNDLE_GUI_IDENTIFIER "audio.2bit.blackthrum"
+            MACOSX_BUNDLE_GUI_IDENTIFIER "jp.ehl.blackthrum"
             MACOSX_BUNDLE_BUNDLE_NAME "BlackThrum"
-            XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "audio.2bit.blackthrum")
+            XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "jp.ehl.blackthrum")
     endif()
 
     if(APPLE AND BLACKTHRUM_ADHOC_SIGN)

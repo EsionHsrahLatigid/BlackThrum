@@ -36,7 +36,7 @@ cmake --build --preset plugin-release
 ctest --preset plugin-release
 ```
 
-Release bundles are generated under `build/plugin-release` by YUP's plugin targets:
+Release bundles are staged in a stable, human-facing tree. `build/` is only CMake's working area:
 
 - `blackthrum_release_bundles`
 - `blackthrum_standalone_plugin`
@@ -45,9 +45,11 @@ Release bundles are generated under `build/plugin-release` by YUP's plugin targe
 
 On macOS, the local bundle paths are:
 
-- `build/plugin-release/blackthrum_standalone_plugin.app`
-- `build/plugin-release/VST3/Release/blackthrum_vst3_plugin.vst3`
-- `build/plugin-release/blackthrum_au_plugin.component`
+- `artifacts/plugin-release/macos-arm64/standalone/blackthrum_standalone_plugin.app`
+- `artifacts/plugin-release/macos-arm64/vst3/blackthrum_vst3_plugin.vst3`
+- `artifacts/plugin-release/macos-arm64/au/blackthrum_au_plugin.component`
+
+Windows uses the same layout under `artifacts/plugin-release/windows-x64/` with `standalone/` and `vst3/` directories. `ARTIFACTS.txt` records the staged product, profile, platform, and formats.
 
 ## CI
 

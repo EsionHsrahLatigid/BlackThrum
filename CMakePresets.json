@@ -44,7 +44,7 @@
       "name": "plugin-release",
       "configurePreset": "plugin-release",
       "targets": [
-        "blackthrum_release_bundles",
+        "ehl_stage_products",
         "blackthrum_engine_tests",
         "blackthrum_plugin_bridge_tests"
       ]

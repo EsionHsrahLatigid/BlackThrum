@@ -1,0 +1,80 @@
+cmake_minimum_required(VERSION 3.25)
+
+foreach(required_var EHL_BUILD_DIR EHL_OUTPUT_ROOT EHL_PRODUCT EHL_SLUG EHL_PROFILE EHL_SYSTEM_NAME)
+    if(NOT DEFINED ${required_var} OR "${${required_var}}" STREQUAL "")
+        message(FATAL_ERROR "StageYupProducts requires ${required_var}")
+    endif()
+endforeach()
+
+string(TOLOWER "${EHL_SYSTEM_NAME}" system_name)
+string(TOLOWER "${EHL_SYSTEM_PROCESSOR}" processor)
+if(system_name STREQUAL "darwin")
+    set(platform "macos")
+elseif(system_name STREQUAL "windows")
+    set(platform "windows")
+else()
+    set(platform "${system_name}")
+endif()
+if(processor MATCHES "^(arm64|aarch64)$")
+    set(architecture "arm64")
+elseif(processor MATCHES "^(amd64|x86_64|x64)$" OR processor STREQUAL "")
+    set(architecture "x64")
+else()
+    set(architecture "${processor}")
+endif()
+
+set(stage_dir "${EHL_OUTPUT_ROOT}/${EHL_PROFILE}/${platform}-${architecture}")
+file(REMOVE_RECURSE "${stage_dir}")
+file(MAKE_DIRECTORY
+    "${stage_dir}/standalone"
+    "${stage_dir}/vst3")
+
+function(find_unique result kind expected_name)
+    file(GLOB_RECURSE candidates LIST_DIRECTORIES true "${EHL_BUILD_DIR}/*")
+    set(matches)
+    foreach(candidate IN LISTS candidates)
+        get_filename_component(candidate_name "${candidate}" NAME)
+        if(candidate_name STREQUAL expected_name)
+            if(kind STREQUAL "file" AND NOT IS_DIRECTORY "${candidate}")
+                list(APPEND matches "${candidate}")
+            elseif(kind STREQUAL "directory" AND IS_DIRECTORY "${candidate}")
+                list(APPEND matches "${candidate}")
+            endif()
+        endif()
+    endforeach()
+    list(REMOVE_DUPLICATES matches)
+    list(LENGTH matches match_count)
+    if(NOT match_count EQUAL 1)
+        message(FATAL_ERROR "Expected exactly one ${expected_name} under ${EHL_BUILD_DIR}, found ${match_count}: ${matches}")
+    endif()
+    list(GET matches 0 match)
+    set(${result} "${match}" PARENT_SCOPE)
+endfunction()
+
+if(platform STREQUAL "windows")
+    find_unique(standalone file "${EHL_SLUG}_standalone_plugin.exe")
+else()
+    find_unique(standalone directory "${EHL_SLUG}_standalone_plugin.app")
+endif()
+find_unique(vst3 directory "${EHL_SLUG}_vst3_plugin.vst3")
+
+file(COPY "${standalone}" DESTINATION "${stage_dir}/standalone")
+file(COPY "${vst3}" DESTINATION "${stage_dir}/vst3")
+
+if(EHL_EXPECT_AU)
+    file(MAKE_DIRECTORY "${stage_dir}/au")
+    find_unique(au directory "${EHL_SLUG}_au_plugin.component")
+    file(COPY "${au}" DESTINATION "${stage_dir}/au")
+endif()
+
+file(WRITE "${stage_dir}/ARTIFACTS.txt"
+    "product=${EHL_PRODUCT}\n"
+    "profile=${EHL_PROFILE}\n"
+    "platform=${platform}-${architecture}\n"
+    "config=${EHL_CONFIG}\n"
+    "standalone=${EHL_SLUG}_standalone_plugin\n"
+    "vst3=${EHL_SLUG}_vst3_plugin.vst3\n")
+if(EHL_EXPECT_AU)
+    file(APPEND "${stage_dir}/ARTIFACTS.txt" "au=${EHL_SLUG}_au_plugin.component\n")
+endif()
+message(STATUS "Staged ${EHL_PRODUCT} products at ${stage_dir}")

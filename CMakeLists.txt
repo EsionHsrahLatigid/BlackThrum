@@ -144,6 +144,15 @@ if(BLACKTHRUM_BUILD_PLUGIN)
     add_custom_target(blackthrum_release_bundles
         DEPENDS ${blackthrum_release_bundle_targets})
 
+    include(cmake/EhlYupArtifactLayout.cmake)
+    ehl_yup_add_artifact_target(
+        TARGET ehl_stage_products
+        PRODUCT BlackThrum
+        SLUG blackthrum
+        STANDALONE_TARGET blackthrum_standalone_plugin
+        VST3_TARGET blackthrum_vst3_plugin
+        AU_TARGET blackthrum_au_plugin)
+
     if(APPLE)
         set_target_properties(blackthrum_standalone_plugin PROPERTIES
             MACOSX_BUNDLE_GUI_IDENTIFIER "jp.ehl.blackthrum"

@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   ci:
-    uses: EsionHsrahLatigid/yup-actions/.github/workflows/plugin-ci.yml@83c2b82cde8050bcb12acce1c24b2aa18da9f1bd
+    uses: EsionHsrahLatigid/yup-actions/.github/workflows/plugin-ci.yml@d7746cba582c0a00e6e7f0cdc37ae3b2d38830d8
     with:
       product_name: BlackThrum
       product_slug: blackthrum
@@ -30,4 +30,3 @@ jobs:
       debug_targets_json: '["blackthrum_engine_tests"]'
       release_test_targets_json: '["blackthrum_engine_tests","blackthrum_plugin_bridge_tests"]'
       windows_debug_plugins: false
-      force_heavy: ${{ inputs.force_heavy }}

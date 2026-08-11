@@ -120,11 +120,17 @@ jobs:
 
       - name: Configure Debug tests
         run: >
+          for attempt in 1 2 3; do
           cmake --preset engine-debug
           -DCMAKE_C_COMPILER_LAUNCHER=sccache
           -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
           -DCMAKE_OBJC_COMPILER_LAUNCHER=sccache
           -DCMAKE_OBJCXX_COMPILER_LAUNCHER=sccache
+          && break;
+          if [[ $attempt -eq 3 ]]; then exit 1; fi;
+          echo "::warning::Dependency fetch failed; retrying configure ($attempt/3)";
+          sleep $((attempt * 5));
+          done
 
       - name: Build Debug tests
         run: cmake --build --preset engine-debug --parallel
@@ -134,11 +140,17 @@ jobs:
 
       - name: Configure Release bundles
         run: >
+          for attempt in 1 2 3; do
           cmake --preset plugin-release
           -DCMAKE_C_COMPILER_LAUNCHER=sccache
           -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
           -DCMAKE_OBJC_COMPILER_LAUNCHER=sccache
           -DCMAKE_OBJCXX_COMPILER_LAUNCHER=sccache
+          && break;
+          if [[ $attempt -eq 3 ]]; then exit 1; fi;
+          echo "::warning::Dependency fetch failed; retrying configure ($attempt/3)";
+          sleep $((attempt * 5));
+          done
 
       - name: Build Release bundles
         run: cmake --build --preset plugin-release --parallel

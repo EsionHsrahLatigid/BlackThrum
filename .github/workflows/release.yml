@@ -15,6 +15,6 @@ concurrency:
 
 jobs:
   release:
-    uses: EsionHsrahLatigid/yup-actions/.github/workflows/plugin-release.yml@d7746cba582c0a00e6e7f0cdc37ae3b2d38830d8
+    uses: EsionHsrahLatigid/yup-actions/.github/workflows/plugin-release.yml@d06448066a4d9fa7202851d7764fa92ea48d4ce4
     with:
       product_name: BlackThrum

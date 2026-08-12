@@ -7,6 +7,11 @@
 #include <memory>
 #include <vector>
 
+namespace ehl::ui
+{
+class StripMeter;
+}
+
 namespace blackthrum::plugin
 {
 
@@ -39,7 +44,6 @@ private:
 
     yup::String title;
     yup::String warning;
-    std::uint32_t accentColor = 0xffff3300u;
     std::unique_ptr<yup::Label> titleLabel;
     std::unique_ptr<yup::Label> warningLabel;
     std::vector<yup::AudioParameter::Ptr> parameters;
@@ -48,7 +52,7 @@ private:
     std::vector<std::unique_ptr<yup::Label>> valueLabels;
     std::unique_ptr<yup::TextButton> triggerButton;
     std::unique_ptr<yup::Label> meterLabel;
-    std::unique_ptr<yup::Component> outputMeter;
+    std::unique_ptr<ehl::ui::StripMeter> outputMeter;
     BlackThrumPlugin* blackthrumProcessor = nullptr;
     float displayedPeak = 0.0f;
     bool mouseGateHeld = false;

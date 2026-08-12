@@ -1,0 +1,3 @@
+[submodule "external/yup-ehl-design-module"]
+	path = external/yup-ehl-design-module
+	url = https://github.com/EsionHsrahLatigid/yup-ehl-design-module.git

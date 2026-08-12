@@ -290,7 +290,7 @@ yup::AudioProcessorEditor* BlackThrumPlugin::createEditor()
     return new ParameterGridEditor (*this,
                                     "BlackThrum",
                                     "Hold Trigger or Space to play. External MIDI takes priority.",
-                                    0xffb7c4c8u);
+                                    0xfff2f2f0u);
 #endif
 }
 

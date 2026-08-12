@@ -7,7 +7,8 @@ BlackThrum is a YUP-based audio plugin and standalone synth that renders a note-
 - App ID: `jp.ehl.blackthrum`
 - Plugin ID: `jp.ehl.blackthrum`
 - AU subtype: `BlTh`
-- Vendor: `2bit`
+- Plugin vendor: `ehl_`
+- AU manufacturer: `EHL1`
 - Type: stereo-output synth accepting MIDI input
 - macOS formats: Standalone, VST3, AUv2
 - Windows formats: Standalone, VST3
@@ -23,6 +24,12 @@ The editor also shows a lightweight output activity meter. Trigger edges and met
 `Pitch offset`, `Thrum`, `Drift`, `Formant`, `Width`, `Grind`, and `Output` are the stable host parameters. `Trigger` is intentionally runtime UI state and is not saved as host/plugin state.
 
 ## Build
+
+Clone with `--recurse-submodules`, or initialize the shared [yup-ehl-design-module](https://github.com/EsionHsrahLatigid/yup-ehl-design-module) before configuring:
+
+```sh
+git submodule update --init
+```
 
 ```sh
 cmake --preset engine-debug

@@ -67,6 +67,31 @@ if(EHL_EXPECT_AU)
     file(COPY "${au}" DESTINATION "${stage_dir}/au")
 endif()
 
+if(EHL_COPY_PLUGIN_AFTER_BUILD)
+    if(NOT platform STREQUAL "macos")
+        message(FATAL_ERROR "EHL_COPY_PLUGIN_AFTER_BUILD is supported only on macOS")
+    endif()
+    foreach(destination_var EHL_USER_VST3_DIR EHL_USER_AU_DIR)
+        if(NOT DEFINED ${destination_var} OR "${${destination_var}}" STREQUAL "")
+            message(FATAL_ERROR "Local plugin copy requires ${destination_var}")
+        endif()
+    endforeach()
+
+    set(installed_vst3 "${EHL_USER_VST3_DIR}/${EHL_SLUG}_vst3_plugin.vst3")
+    file(MAKE_DIRECTORY "${EHL_USER_VST3_DIR}")
+    file(REMOVE_RECURSE "${installed_vst3}")
+    file(COPY "${stage_dir}/vst3/${EHL_SLUG}_vst3_plugin.vst3"
+        DESTINATION "${EHL_USER_VST3_DIR}")
+
+    if(EHL_EXPECT_AU)
+        set(installed_au "${EHL_USER_AU_DIR}/${EHL_SLUG}_au_plugin.component")
+        file(MAKE_DIRECTORY "${EHL_USER_AU_DIR}")
+        file(REMOVE_RECURSE "${installed_au}")
+        file(COPY "${stage_dir}/au/${EHL_SLUG}_au_plugin.component"
+            DESTINATION "${EHL_USER_AU_DIR}")
+    endif()
+endif()
+
 file(WRITE "${stage_dir}/ARTIFACTS.txt"
     "product=${EHL_PRODUCT}\n"
     "profile=${EHL_PROFILE}\n"
@@ -76,5 +101,12 @@ file(WRITE "${stage_dir}/ARTIFACTS.txt"
     "vst3=${EHL_SLUG}_vst3_plugin.vst3\n")
 if(EHL_EXPECT_AU)
     file(APPEND "${stage_dir}/ARTIFACTS.txt" "au=${EHL_SLUG}_au_plugin.component\n")
+endif()
+if(EHL_COPY_PLUGIN_AFTER_BUILD)
+    file(APPEND "${stage_dir}/ARTIFACTS.txt" "installed_vst3=${installed_vst3}\n")
+    if(EHL_EXPECT_AU)
+        file(APPEND "${stage_dir}/ARTIFACTS.txt" "installed_au=${installed_au}\n")
+    endif()
+    message(STATUS "Copied ${EHL_PRODUCT} plugin bundles into ${EHL_USER_VST3_DIR} and ${EHL_USER_AU_DIR}")
 endif()
 message(STATUS "Staged ${EHL_PRODUCT} products at ${stage_dir}")

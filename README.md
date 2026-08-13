@@ -56,7 +56,7 @@ On macOS, the local bundle paths are:
 - `artifacts/plugin-release/macos-arm64/vst3/blackthrum_vst3_plugin.vst3`
 - `artifacts/plugin-release/macos-arm64/au/blackthrum_au_plugin.component`
 
-Windows uses the same layout under `artifacts/plugin-release/windows-x64/` with `standalone/` and `vst3/` directories. `ARTIFACTS.txt` records the staged product, profile, platform, and formats.
+Windows uses the same layout under `artifacts/plugin-release/windows-x64/` with `standalone/` and `vst3/` directories. On local macOS non-CI `plugin-release` builds, the staged VST3 and AU bundles are also physically copied to `~/Library/Audio/Plug-Ins/VST3` and `~/Library/Audio/Plug-Ins/Components`; Standalone stays in `artifacts/`. Configure with `-DEHL_COPY_PLUGIN_AFTER_BUILD=OFF` to disable the local plugin copy. `ARTIFACTS.txt` records the staged product, profile, platform, formats, and local plugin copy paths when enabled.
 
 ## CI
 

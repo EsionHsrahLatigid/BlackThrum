@@ -4,17 +4,37 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: Existing semver release tag
+        required: true
+        type: string
+      publish_release:
+        description: Publish verified candidates to the GitHub Release
+        default: false
+        required: true
+        type: boolean
 
 permissions:
   actions: read
   contents: write
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: caller-release-${{ github.repository }}-${{ github.event_name == 'workflow_dispatch' && inputs.tag_name || github.ref_name }}
+  cancel-in-progress: false
 
 jobs:
   release:
-    uses: EsionHsrahLatigid/yup-actions/.github/workflows/plugin-release.yml@d06448066a4d9fa7202851d7764fa92ea48d4ce4
+    uses: EsionHsrahLatigid/yup-actions/.github/workflows/plugin-release-signed.yml@050fceee3a68333719a15db6dd09d6c8a6a85c59
     with:
       product_name: BlackThrum
+      tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag_name || github.ref_name }}
+      publish_release: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_release }}
+    secrets:
+      MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+      MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+      APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+      APPLE_API_PRIVATE_KEY_P8_BASE64: ${{ secrets.APPLE_API_PRIVATE_KEY_P8_BASE64 }}

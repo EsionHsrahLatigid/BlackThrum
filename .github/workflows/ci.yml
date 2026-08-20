@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   ci:
-    uses: EsionHsrahLatigid/yup-actions/.github/workflows/plugin-ci.yml@050fceee3a68333719a15db6dd09d6c8a6a85c59
+    uses: EsionHsrahLatigid/yup-actions/.github/workflows/plugin-ci.yml@e6357cc6fb863b3691a9fe3203c54fe74bdec74c
     with:
       product_name: BlackThrum
       product_slug: blackthrum

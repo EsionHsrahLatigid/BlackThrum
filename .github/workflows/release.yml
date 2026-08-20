@@ -8,7 +8,13 @@ on:
     inputs:
       tag_name:
         description: Existing semver release tag
-        required: true
+        default: ''
+        required: false
+        type: string
+      canary_sha:
+        description: Current main commit SHA for a non-publishing signing canary
+        default: ''
+        required: false
         type: string
       publish_release:
         description: Publish verified candidates to the GitHub Release
@@ -21,15 +27,16 @@ permissions:
   contents: write
 
 concurrency:
-  group: caller-release-${{ github.repository }}-${{ github.event_name == 'workflow_dispatch' && inputs.tag_name || github.ref_name }}
+  group: caller-release-${{ github.repository }}-${{ inputs.canary_sha != '' && inputs.canary_sha || inputs.tag_name != '' && inputs.tag_name || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
   release:
-    uses: EsionHsrahLatigid/yup-actions/.github/workflows/plugin-release-signed.yml@050fceee3a68333719a15db6dd09d6c8a6a85c59
+    uses: EsionHsrahLatigid/yup-actions/.github/workflows/plugin-release-signed.yml@e6357cc6fb863b3691a9fe3203c54fe74bdec74c
     with:
       product_name: BlackThrum
-      tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag_name || github.ref_name }}
+      tag_name: ${{ inputs.tag_name }}
+      canary_sha: ${{ inputs.canary_sha }}
       publish_release: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_release }}
     secrets:
       MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}

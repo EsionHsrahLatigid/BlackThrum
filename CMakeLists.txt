@@ -62,8 +62,8 @@ if(BLACKTHRUM_BUILD_PLUGIN)
     else()
         include(FetchContent)
         FetchContent_Declare(yup
-            GIT_REPOSITORY https://github.com/EsionHsrahLatigid/yup.git
-            GIT_TAG fa83e8c55664727ae5a53b94a3f6b5b336ce9e57)
+            GIT_REPOSITORY https://github.com/kunitoki/yup.git
+            GIT_TAG ca9fd92a8e56da8924676858512118aa0ff37272)
         FetchContent_MakeAvailable(yup)
     endif()
 
